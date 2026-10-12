@@ -21,30 +21,30 @@ CI e testes próprios.
 
 ## Arquitetura
 
-```
-   ┌──────────────────────────┐
-   │  vetflow-frontend (React) │  ← usuário: CRUD + widget de chat IA
-   └───────┬───────────┬──────┘
-           │ REST      │ POST /chat
-           │           ▼
-           │   ┌─────────────────────────┐   LiteLLM    ┌──────────────────────────┐
-           │   │  vetflow-agent (FastAPI) │ ───────────► │ Claude / GPT / Gemini /   │
-           │   │  loop de tool-use + BYOK │              │ Amazon Bedrock            │
-           │   └───────────┬─────────────┘              └──────────────────────────┘
-           │               │ stdio (subprocesso)
-           │               ▼
-           │       ┌──────────────────────┐
-           │       │  vetflow-mcp (Python) │  ← ferramentas MCP (ler/escrever dados)
-           │       └───────────┬──────────┘
-           │                   │ HTTP + Bearer JWT
-           ▼                   ▼
-       ┌─────────────────────────────┐
-       │  vetflow-backend (Go + chi)  │
-       └──────────────┬──────────────┘
-                      ▼
-                 ┌─────────┐
-                 │ MongoDB │
-                 └─────────┘
+```mermaid
+flowchart TD
+    user([👩‍⚕️ Veterinário])
+    fe["vetflow-frontend<br/>(React + widget de chat)"]
+    agent["vetflow-agent<br/>(FastAPI · loop de tool-use · BYOK)"]
+    mcp["vetflow-mcp<br/>(servidor MCP · ferramentas)"]
+    be["vetflow-backend<br/>(Go + chi)"]
+    db[("MongoDB")]
+    llm{{"LLM via LiteLLM<br/>Claude · GPT · Gemini · Bedrock"}}
+
+    user --> fe
+    fe -- "REST (CRUD)" --> be
+    fe -- "POST /chat" --> agent
+    agent -- "qual modelo responde" --> llm
+    agent -- "stdio (subprocesso)" --> mcp
+    mcp -- "HTTP + Bearer JWT" --> be
+    be --> db
+
+    classDef py fill:#2b6cb0,stroke:#1a365d,color:#fff;
+    classDef go fill:#2f855a,stroke:#1c4532,color:#fff;
+    classDef js fill:#b7791f,stroke:#744210,color:#fff;
+    class agent,mcp py;
+    class be go;
+    class fe js;
 ```
 
 A IA nunca fala com o banco direto: o **agente** decide *qual modelo* responde,

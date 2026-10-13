@@ -33,10 +33,10 @@ flowchart TD
 
     user --> fe
     fe -- "REST (CRUD)" --> be
-    fe -- "POST /chat" --> agent
+    fe -- "POST /chat (+ JWT do usuário)" --> agent
     agent -- "qual modelo responde" --> llm
-    agent -- "stdio (subprocesso)" --> mcp
-    mcp -- "HTTP + Bearer JWT" --> be
+    agent -- "in-process (deploy) · stdio (local)" --> mcp
+    mcp -- "HTTP + Bearer JWT (do usuário)" --> be
     be --> db
 
     classDef py fill:#2b6cb0,stroke:#1a365d,color:#fff;
@@ -50,6 +50,10 @@ flowchart TD
 A IA nunca fala com o banco direto: o **agente** decide *qual modelo* responde,
 o **MCP** fornece as *ferramentas* que leem/escrevem via a API do **backend**, e
 o backend é a única fonte de verdade sobre o Mongo.
+
+> Para o fluxo ponta-a-ponta de uma pergunta, as decisões de arquitetura (por que
+> MCP separado, BYOK, pass-through, in-process vs. subprocesso) e o modelo de
+> segurança, ver [**ARCHITECTURE.md**](./ARCHITECTURE.md).
 
 ## Componentes
 
@@ -68,7 +72,11 @@ o backend é a única fonte de verdade sobre o Mongo.
   guardada **só no navegador** (localStorage), nunca no backend. O sistema não
   se torna guardião de credenciais de terceiros.
 - **MCP como fronteira limpa** — a IA acessa o produto pela mesma API HTTP que o
-  frontend usa, não pelo banco. O MCP é um processo separado, aditivo e seguro.
+  frontend usa, não pelo banco. Em produção o agente consome o MCP **in-process**
+  (um só processo Python, isolamento por-request via `contextvars`); local e no
+  Claude Desktop ele roda como subprocesso stdio.
+- **Auth pass-through** — o chat age como o **usuário logado**: o JWT dele é
+  repassado do front até o backend, que escopa os dados ao vet dono do token.
 - **Segurança por padrão** — tools de escrita do MCP são opt-in; DELETE não é
   exposto; credenciais nunca trafegam para o front; cada repo tem CI próprio.
 
@@ -79,9 +87,9 @@ A ordem importa (cada camada depende da anterior):
 1. **MongoDB** — ex.: `docker run -d --rm -p 27017:27017 mongo:7`.
 2. **vetflow-backend** — configure `.env` (Mongo, JWT) e rode (`go run ./cmd`).
    Em modo development, um seed cria dados demo.
-3. **vetflow-agent** — `pip install -r requirements.txt && pip install -e
-   ../vetflow-mcp`; configure `.env` (provider de LLM + `VETFLOW_*`); rode a API:
-   `uvicorn api:app --port 8700`.
+3. **vetflow-agent** — `pip install -e . && pip install -e ../vetflow-mcp`;
+   configure `.env` (provider de LLM + `VETFLOW_*`); rode a API:
+   `uvicorn vetflow_agent.api.api:app --port 8000`.
 4. **vetflow-frontend** — `npm install`; `.env` com `VITE_API_BASE_URL` e
    `VITE_AGENT_API_URL`; `npm run dev` (abre em `http://localhost:3039`).
 

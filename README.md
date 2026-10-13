@@ -80,6 +80,28 @@ o backend é a única fonte de verdade sobre o Mongo.
 - **Segurança por padrão** — tools de escrita do MCP são opt-in; DELETE não é
   exposto; credenciais nunca trafegam para o front; cada repo tem CI próprio.
 
+## Clonar tudo
+
+Os quatro componentes são **repositórios independentes** (cada um com CI, testes
+e versionamento próprios — ver [ARCHITECTURE.md](./ARCHITECTURE.md)). Este repo é
+o mapa, não um monorepo: ele **não** os contém como submodules, de propósito. Para
+trabalhar no sistema inteiro, clone os quatro **lado a lado** numa pasta comum —
+é o layout que o setup local assume (o `vetflow-agent` referencia
+`../vetflow-mcp`):
+
+```bash
+mkdir vetflow && cd vetflow
+# o agente consome o mcp como submodule no deploy, então use --recursive nele:
+git clone --recursive https://github.com/IannCarvalho/vetflow-agent.git
+git clone https://github.com/IannCarvalho/vetflow-mcp.git
+git clone https://github.com/IannCarvalho/vetflow-frontend.git
+git clone https://github.com/IannCarvalho/vetflow-backend.git
+```
+
+> Só o `vetflow-agent` precisa de `--recursive`: ele embute o `vetflow-mcp` como
+> git submodule (`vendor/vetflow-mcp`) para que o deploy seja autocontido. Os
+> outros três são clones simples.
+
 ## Rodando o sistema localmente
 
 A ordem importa (cada camada depende da anterior):

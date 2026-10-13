@@ -67,7 +67,13 @@ o backend é a única fonte de verdade sobre o Mongo.
 ## Destaques técnicos
 
 - **Multi-provider via LiteLLM** — o mesmo agente roda sobre Claude, GPT, Gemini
-  ou Bedrock; o provider é escolhido por config ou auto-detecção.
+  ou Bedrock; o provider é escolhido por config ou auto-detecção. O LiteLLM lê
+  variáveis de ambiente **no momento do `import`**, então no
+  [`vetflow-agent`](https://github.com/IannCarvalho/vetflow-agent) o
+  `import litellm` vem **logo após o `load_dotenv()`** (para enxergar o `.env`) e
+  **no topo do módulo**, nunca dentro de um handler async (um import de ~7s numa
+  coroutine, com 1 worker, bloqueia o event loop e derruba o health check). O
+  porquê detalhado está no README do agent.
 - **BYOK (bring your own key)** — o usuário pode usar a própria chave de LLM,
   guardada **só no navegador** (localStorage), nunca no backend. O sistema não
   se torna guardião de credenciais de terceiros.

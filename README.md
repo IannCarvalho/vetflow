@@ -7,6 +7,17 @@ geral e os links para cada componente.
 
 > Projeto de portfólio de [Iann Carvalho](https://github.com/IannCarvalho).
 
+## Demo ao vivo
+
+**[vetflow-frontend-demo.vercel.app](https://vetflow-frontend-demo.vercel.app)** — clique em
+**"Entrar como visitante"** para explorar o sistema com uma conta de demonstração, sem
+cadastro.
+
+A demo roda num ambiente **isolado** da produção: backend com `APP_ENV=demo` e banco
+próprio (`vetflow_demo`) com dados **fictícios**, re-semeado automaticamente no boot
+quando o último seed passa da janela configurada (ver
+[ARCHITECTURE.md §5](./ARCHITECTURE.md#5-deploy-produção)).
+
 ## Visão geral
 
 Um veterinário gerencia clientes, pets, consultas, vacinas, agenda e finanças
@@ -114,16 +125,22 @@ A ordem importa (cada camada depende da anterior):
 
 1. **MongoDB** — ex.: `docker run -d --rm -p 27017:27017 mongo:7`.
 2. **vetflow-backend** — configure `.env` (Mongo, JWT) e rode (`go run ./cmd`).
-   Em modo development, um seed cria dados demo.
+   Em modo development, um seed cria dados demo. Use um banco próprio
+   (ex.: `MONGO_DB=vetflow_dev`): fora de produção o backend **recusa subir**
+   apontando para o banco de produção `vetflow`.
 3. **vetflow-agent** — `pip install -e . && pip install -e ../vetflow-mcp`;
    configure `.env` (provider de LLM + `VETFLOW_*`); rode a API:
-   `uvicorn vetflow_agent.api.api:app --port 8000`.
-4. **vetflow-frontend** — `npm install`; `.env` com `VITE_API_BASE_URL` e
-   `VITE_AGENT_API_URL`; `npm run dev` (abre em `http://localhost:3039`).
+   `uvicorn vetflow_agent.api.api:app --port 8700` (a porta que o frontend usa por
+   padrão).
+4. **vetflow-frontend** — `npm install`; `.env` com
+   `VITE_API_BASE_URL=http://localhost:8080` e
+   `VITE_AGENT_API_URL=http://localhost:8700`; `npm run dev` (abre em
+   `http://localhost:3039`).
 
 Cada repositório tem instruções detalhadas no seu próprio README.
 
 ## Status
 
-Todos os componentes têm CI (lint + testes). O assistente de IA foi validado
-end-to-end contra o backend real, usando Amazon Bedrock e Google Gemini.
+Cada componente tem CI próprio com testes; o frontend roda também um gate de
+acessibilidade (axe-core, WCAG 2.1 AA) sobre as telas principais. O assistente de IA foi
+validado end-to-end contra o backend real, usando Amazon Bedrock e Google Gemini.

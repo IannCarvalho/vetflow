@@ -195,6 +195,33 @@ O `render.yaml` do agente é a fonte de verdade do deploy: build
 (`uvicorn vetflow_agent.api.api:app`), e as env vars pass-through/BYOK/in-process
 documentadas em comentários.
 
+### Ambientes: produção e demo pública
+
+Frontend e backend rodam em **dois ambientes isolados**, a partir dos mesmos
+repositórios:
+
+| | Produção | Demo pública |
+|---|---|---|
+| frontend | projeto Vercel `vetflow-frontend` | projeto Vercel `vetflow-frontend-demo`, com `VITE_DEMO_MODE=true` (botão "Entrar como visitante") |
+| backend | Render (`render.yaml`), `APP_ENV=production` | Render, serviço separado, `APP_ENV=demo` |
+| banco | Atlas, banco `vetflow` | Atlas, banco `vetflow_demo` (dados fictícios) |
+
+- **Produção — cadastro controlado:** o `POST /auth/register` exige o código de
+  convite `REGISTER_INVITE_CODE` (vazio = cadastro clássico fechado) e
+  `MAX_PRODUCTION_USERS` impõe um teto de contas que cobre cadastro clássico,
+  social e OAuth. Os dois controles são ignorados fora de produção.
+- **Demo — auto-limpeza:** no boot, o backend re-semeia o banco se o último seed
+  tiver mais de `DEMO_RESET_INTERVAL_HOURS` (padrão 6 h); `POST /admin/reset-demo`
+  (header `X-Admin-Token`) força um reset. O visitante entra com uma conta
+  semeada.
+- **Isolamento garantido no código:** fora de produção o backend **recusa subir**
+  se `MONGO_DB` apontar para o banco de produção (`vetflow`), e o seed nunca roda
+  em produção.
+
+Detalhes e variáveis de ambiente: README do
+[`vetflow-backend`](https://github.com/IannCarvalho/vetflow-backend) e do
+[`vetflow-frontend`](https://github.com/IannCarvalho/vetflow-frontend).
+
 ---
 
 ## 6. Limitações conhecidas e evolução
